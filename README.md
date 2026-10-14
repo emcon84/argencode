@@ -2,23 +2,50 @@
 
 Argencode es un lenguaje de programación de juguete cuyas palabras clave están en español. Está implementado como un intérprete de recorrido de árbol (*tree-walking interpreter*) en TypeScript y se ejecuta sobre [Bun](https://bun.sh).
 
-Su objetivo es educativo: mostrar, con código pequeño y legible, cómo funcionan un analizador léxico, un analizador sintáctico y un evaluador.
-
 ```
-var nombre = "Che"
-si nombre == "Che" {
-  mostrar("¡Hola, " + nombre + "!")
-} sino {
-  mostrar("¿Quién sos?")
+var n = 1
+mientras n es menor o igual a 15 ejecutar {
+  si n % 15 es igual a 0 mostrar("FizzBuzz")
+  sino si n % 3 es igual a 0 mostrar("Fizz")
+  sino si n % 5 es igual a 0 mostrar("Buzz")
+  sino mostrar(n)
+  n = n + 1
 }
 ```
+
+## La idea
+
+**La legibilidad es la base.** Argencode busca que un programa se lea casi como una oración en español, para que cualquier persona pueda entender qué hace el código aunque nunca haya programado.
+
+Por eso el lenguaje admite dos estilos que conviven en el mismo archivo:
+
+- **Estilo clásico**, cercano a JavaScript: `var`, `==`, `<=`, llaves en todos los bloques.
+- **Estilo legible**, en palabras: `variable para`, `es igual a`, `es menor o igual a`, `devuelve`, `recibe`, `ejecutar` y `si` de una sola línea.
+
+```
+funcion para crearContador(recibe inicio) {
+  variable para contar = inicio
+  devuelve funcion() {
+    devuelve contar = contar + 1
+  }
+}
+```
+
+Los principios que guían el diseño:
+
+1. **Se lee como se dice.** Si una construcción se puede expresar con palabras naturales sin volverse ambigua, el lenguaje la admite.
+2. **Legible no significa impreciso.** Cada frase tiene un único significado. Las palabras de relleno (`para`, `recibe`, `ejecutar`) son opcionales y nunca cambian el comportamiento del programa.
+3. **Errores que enseñan.** Los mensajes de error están en español, indican la línea y explican qué se esperaba.
+4. **Código fuente para aprender.** El propio intérprete es pequeño y está separado en analizador léxico, analizador sintáctico y evaluador, para que se pueda leer y estudiar cómo funciona un lenguaje por dentro.
+
+Argencode está pensado como una herramienta educativa, en la línea de PSeInt pero con programas que se ejecutan de verdad. A futuro podría ejecutarse en el navegador o compilarse a JavaScript (ver la [hoja de ruta](#hoja-de-ruta)).
 
 ## Instalación
 
 Requisitos: Bun 1.2 o superior.
 
 ```sh
-git clone <url-del-repositorio> argencode
+git clone https://github.com/emcon84/argencode.git
 cd argencode
 bun install
 ```
@@ -309,6 +336,9 @@ run('mostrar("hola")', { output: (linea) => lineas.push(linea) });
 - [ ] Módulos e importación de archivos.
 - [ ] Resolución estática de variables y mensajes de error con columna.
 - [ ] Compilación a bytecode y una máquina virtual.
+- [ ] Objetos y listas, necesarios para modelar datos reales.
+- [ ] Un *playground* para escribir y ejecutar Argencode en el navegador.
+- [ ] Compilación a JavaScript, para aprovechar el ecosistema de npm.
 
 ## Licencia
 
