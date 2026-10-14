@@ -1,0 +1,22 @@
+// Clausuras: cada contador recuerda su propia cuenta
+funcion crearContador(inicio) {
+  var cuenta = inicio
+  devolver funcion() {
+    cuenta = cuenta + 1
+    devolver cuenta
+  }
+}
+
+var deA1 = crearContador(0)
+var deA10 = crearContador(100)
+
+deA1()
+deA1()
+mostrar("Primer contador:", deA1())
+mostrar("Segundo contador:", deA10())
+
+// Funciones de primera clase
+funcion aplicarDosVeces(f, x) {
+  devolver f(f(x))
+}
+mostrar(aplicarDosVeces(funcion(n) { devolver n * 3 }, 2))

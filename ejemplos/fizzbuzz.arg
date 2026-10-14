@@ -1,0 +1,14 @@
+// FizzBuzz con cadenas "sino si"
+var n = 1
+mientras n <= 15 {
+  si n % 15 == 0 {
+    mostrar("FizzBuzz")
+  } sino si n % 3 == 0 {
+    mostrar("Fizz")
+  } sino si n % 5 == 0 {
+    mostrar("Buzz")
+  } sino {
+    mostrar(n)
+  }
+  n = n + 1
+}

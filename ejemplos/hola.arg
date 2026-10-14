@@ -1,0 +1,18 @@
+// Primer programa en Argencode
+var nombre = "Che"
+si nombre == "Che" {
+  mostrar("¡Hola, " + nombre + "!")
+} sino {
+  mostrar("¿Quién sos?")
+}
+
+funcion sumar(a, b) {
+  devolver a + b
+}
+mostrar(sumar(2, 3))
+
+var i = 0
+mientras i < 3 {
+  mostrar(i)
+  i = i + 1
+}

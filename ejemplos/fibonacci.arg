@@ -1,0 +1,13 @@
+// Sucesión de Fibonacci con recursión
+funcion fibonacci(n) {
+  si n < 2 {
+    devolver n
+  }
+  devolver fibonacci(n - 1) + fibonacci(n - 2)
+}
+
+var i = 0
+mientras i <= 10 {
+  mostrar("fibonacci(" + i + ") = " + fibonacci(i))
+  i = i + 1
+}
