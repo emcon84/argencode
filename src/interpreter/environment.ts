@@ -12,6 +12,11 @@ export class Environment {
     this.values.set(name, value);
   }
 
+  /** Whether the name is declared in this scope or any enclosing one. */
+  has(name: string): boolean {
+    return this.resolve(name) !== null;
+  }
+
   get(name: string, line: number): Value {
     const scope = this.resolve(name);
     if (scope === null) throw runtimeError(line, `variable '${name}' no definida`);
