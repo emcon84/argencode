@@ -12,6 +12,27 @@ describe("lexer", () => {
     ]);
   });
 
+  test("maps keyword synonyms to the same token types", () => {
+    expect(types("variable devuelve función")).toEqual(["Var", "Devolver", "Funcion", "EOF"]);
+  });
+
+  test("keeps the original spelling of a synonym as its lexeme", () => {
+    const [token] = tokenize("función");
+    expect(token).toMatchObject({ type: "Funcion", lexeme: "función" });
+  });
+
+  test("recognizes 'función' written with a combining accent", () => {
+    expect(types("función")).toEqual(["Funcion", "EOF"]);
+  });
+
+  test("reserves the filler words 'para' and 'recibe'", () => {
+    expect(types("para recibe")).toEqual(["Para", "Recibe", "EOF"]);
+  });
+
+  test("does not treat words that merely contain a keyword as keywords", () => {
+    expect(types("variables parar recibido")).toEqual(["Identifier", "Identifier", "Identifier", "EOF"]);
+  });
+
   test("reads integer and decimal numbers", () => {
     const tokens = tokenize("42 3.14");
     expect(tokens[0]?.literal).toBe(42);

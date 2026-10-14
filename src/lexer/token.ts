@@ -1,16 +1,27 @@
+/**
+ * Reserved words and the token type each one produces.
+ * Synonyms (`variable`, `devuelve`, `función`) share the token type of their base keyword,
+ * so the parser never needs to know which spelling was used.
+ */
 export const KEYWORDS = {
   var: "Var",
+  variable: "Var",
   si: "Si",
   sino: "Sino",
   mientras: "Mientras",
   funcion: "Funcion",
+  función: "Funcion",
   devolver: "Devolver",
+  devuelve: "Devolver",
   verdadero: "Verdadero",
   falso: "Falso",
   nulo: "Nulo",
   y: "Y",
   o: "O",
   no: "No",
+  // Optional filler words that make declarations read like natural language.
+  para: "Para",
+  recibe: "Recibe",
 } as const;
 
 export type KeywordType = (typeof KEYWORDS)[keyof typeof KEYWORDS];

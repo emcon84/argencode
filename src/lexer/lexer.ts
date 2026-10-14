@@ -64,7 +64,9 @@ export function tokenize(source: string): Token[] {
       const start = pos;
       while (pos < chars.length && IDENT_PART.test(peek())) pos++;
       const word = chars.slice(start, pos).join("");
-      push(isKeyword(word) ? KEYWORDS[word] : "Identifier", word);
+      // NFC so a decomposed "función" (o + combining accent) still matches the keyword.
+      const normalized = word.normalize("NFC");
+      push(isKeyword(normalized) ? KEYWORDS[normalized] : "Identifier", word);
       continue;
     }
 
