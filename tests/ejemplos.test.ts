@@ -20,6 +20,10 @@ describe("ejemplos", () => {
     expect(outputOf(await read("contador.arg"))).toEqual(["Primer contador: 3", "Segundo contador: 101", "18"]);
   });
 
+  test("legible.arg", async () => {
+    expect(outputOf(await read("legible.arg"))).toEqual(["1", "2", "1"]);
+  });
+
   test("fizzbuzz.arg", async () => {
     const lines = outputOf(await read("fizzbuzz.arg"));
     expect(lines.slice(0, 5)).toEqual(["1", "2", "Fizz", "4", "Buzz"]);

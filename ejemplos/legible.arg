@@ -1,0 +1,13 @@
+// Sintaxis legible: sinónimos ("variable", "devuelve") y palabras de relleno
+// opcionales ("para", "recibe"). Cada contador conserva su propia cuenta.
+funcion para crearContador(recibe inicio) {
+  variable para contar = inicio
+  devuelve funcion() {
+    devuelve contar = contar + 1
+  }
+}
+variable para a = crearContador(0)
+mostrar(a())
+mostrar(a())
+var b = crearContador(0)
+mostrar(b())

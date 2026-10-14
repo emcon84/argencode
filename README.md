@@ -86,7 +86,7 @@ De menor a mayor precedencia:
 
 | Operadores            | Descripción                    |
 | --------------------- | ------------------------------ |
-| `=`                   | asignación (asociativa a derecha) |
+| `=`                   | asignación (asociativa a derecha, devuelve el valor asignado) |
 | `o`                   | o lógico (cortocircuito)       |
 | `y`                   | y lógico (cortocircuito)       |
 | `==` `!=`             | igualdad                       |
@@ -98,6 +98,8 @@ De menor a mayor precedencia:
 `+` concatena cuando alguno de los operandos es texto: `"total: " + 5` produce `"total: 5"`.
 
 `y` y `o` devuelven uno de sus operandos, de modo que `nombre o "anónimo"` sirve como valor por defecto.
+
+La asignación también es una expresión: `x = 5` vale `5`, por lo que `a = b = 3` asigna `3` a ambas variables y `devolver cuenta = cuenta + 1` actualiza y devuelve el valor en un solo paso. Solo se puede asignar a una variable.
 
 ### Control de flujo
 
@@ -137,6 +139,40 @@ funcion crearContador() {
 
 Una función sin `devolver` retorna `nulo`.
 
+### Sintaxis legible
+
+Para que los programas se lean como lenguaje natural, Argencode admite sinónimos y palabras de relleno opcionales. Ambas formas pueden mezclarse libremente.
+
+| Sinónimo   | Equivale a |
+| ---------- | ---------- |
+| `variable` | `var`      |
+| `devuelve` | `devolver` |
+| `función`  | `funcion`  |
+
+Palabras de relleno (opcionales):
+
+- `para` puede ir entre `funcion`/`función` y el nombre de una función declarada, y entre `var`/`variable` y el nombre de la variable.
+- `recibe` puede ir antes del primer parámetro, `(recibe a, b)`, o antes de cada uno, `(recibe a, recibe b)`.
+
+```
+funcion para crearContador(recibe inicio) {
+  variable para contar = inicio
+  devuelve funcion() {
+    devuelve contar = contar + 1
+  }
+}
+variable para a = crearContador(0)
+mostrar(a())   // 1
+mostrar(a())   // 2
+```
+
+Las funciones anónimas no llevan `para`: `funcion(recibe x) { devuelve x }`. `para` y `recibe` son palabras reservadas, por lo que no pueden usarse como nombres. Un uso incorrecto produce un error claro, por ejemplo:
+
+```
+Error en la línea 1: se esperaba el nombre de la función después de 'para' (se encontró '(')
+Error en la línea 1: se esperaba el nombre de un parámetro después de 'recibe' (se encontró ')')
+```
+
 ### Sentencias y comentarios
 
 - Cada sentencia termina con un salto de línea; el `;` es opcional y permite escribir varias sentencias en una línea.
@@ -163,6 +199,8 @@ Error en la línea 2: la función 'sumar' espera 2 argumentos pero recibió 1
 
 `var`, `si`, `sino`, `mientras`, `funcion`, `devolver`, `verdadero`, `falso`, `nulo`, `y`, `o`, `no`.
 
+Sinónimos: `variable`, `devuelve`, `función`. Palabras de relleno: `para`, `recibe`.
+
 ## Ejemplos
 
 La carpeta [`ejemplos/`](ejemplos) contiene programas listos para ejecutar:
@@ -171,6 +209,7 @@ La carpeta [`ejemplos/`](ejemplos) contiene programas listos para ejecutar:
 - `fibonacci.arg`: recursión.
 - `contador.arg`: clausuras y funciones de primera clase.
 - `fizzbuzz.arg`: cadenas `sino si` y el operador `%`.
+- `legible.arg`: sintaxis legible con sinónimos y palabras de relleno.
 
 ## Arquitectura
 
@@ -197,7 +236,7 @@ run('mostrar("hola")', { output: (linea) => lineas.push(linea) });
 ## Hoja de ruta
 
 - [ ] Listas y diccionarios (`[1, 2, 3]`, `{ clave: valor }`).
-- [ ] Ciclo `para` sobre rangos y colecciones.
+- [ ] Ciclos sobre rangos y colecciones con `repetir` / `por cada` (`para` queda reservada como palabra de relleno).
 - [ ] `romper` y `continuar` dentro de ciclos.
 - [ ] Más funciones integradas: `longitud`, `texto`, `numero`, `leer`.
 - [ ] Módulos e importación de archivos.
