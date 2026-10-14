@@ -15,6 +15,10 @@ const TOKEN_NAMES: Partial<Record<TokenType, string>> = {
   EOF: "fin del archivo",
 };
 
+function reservedWordMessage(token: Token): string {
+  return `'${token.lexeme}' es una palabra reservada y no puede usarse como nombre`;
+}
+
 function describe(token: Token): string {
   if (token.type === "Newline" || token.type === "EOF") return TOKEN_NAMES[token.type] ?? token.type;
   return `'${token.lexeme}'`;
@@ -47,17 +51,21 @@ export class Parser {
       case "Mientras": return this.whileStatement();
       case "Devolver": return this.returnStatement();
       case "LeftBrace": return { kind: "Block", body: this.block(), line: token.line };
-      case "Funcion":
-        if (this.peekAt(1).type === "Identifier") return this.functionDeclaration();
+      case "Funcion": {
+        const next = this.peekAt(1).type;
+        if (next === "Identifier" || next === "Para") return this.functionDeclaration();
         break;
+      }
     }
     const expression = this.expression();
     return { kind: "ExprStmt", expression, line: token.line };
   }
 
   private varDeclaration(): Stmt {
-    const line = this.advance().line;
-    const name = this.consume("Identifier", "se esperaba un nombre de variable después de 'var'").lexeme;
+    const keyword = this.advance();
+    const line = keyword.line;
+    const before = this.matchFiller("Para") ?? keyword;
+    const name = this.consumeName(`se esperaba un nombre de variable después de '${before.lexeme}'`);
     const initializer = this.match("Equal") ? this.expression() : null;
     return { kind: "VarDecl", name, initializer, line };
   }
@@ -92,8 +100,10 @@ export class Parser {
   }
 
   private functionDeclaration(): Stmt {
-    const line = this.advance().line;
-    const name = this.consume("Identifier", "se esperaba el nombre de la función").lexeme;
+    const keyword = this.advance();
+    const line = keyword.line;
+    const before = this.matchFiller("Para") ?? keyword;
+    const name = this.consumeName(`se esperaba el nombre de la función después de '${before.lexeme}'`);
     const params = this.parameters();
     const body = this.block();
     return { kind: "FunctionDecl", name, params, body, line };
@@ -106,7 +116,12 @@ export class Parser {
     if (!this.check("RightParen")) {
       do {
         this.skipNewlines();
-        const param = this.consume("Identifier", "se esperaba el nombre de un parámetro").lexeme;
+        const filler = this.matchFiller("Recibe");
+        const param = this.consumeName(
+          filler === undefined
+            ? "se esperaba el nombre de un parámetro"
+            : "se esperaba el nombre de un parámetro después de 'recibe'",
+        );
         if (params.includes(param)) {
           this.fail(this.previous(), `parámetro '${param}' repetido`);
         }
@@ -218,6 +233,9 @@ export class Parser {
       case "Nulo": return { kind: "NullLiteral", line: token.line };
       case "Identifier": return { kind: "Identifier", name: token.lexeme, line: token.line };
       case "Funcion": {
+        if (this.check("Para")) {
+          this.fail(this.peek(), "'para' solo puede usarse antes del nombre de una función declarada");
+        }
         const params = this.parameters();
         const body = this.block();
         return { kind: "FunctionExpr", params, body, line: token.line };
@@ -229,6 +247,9 @@ export class Parser {
         this.consume("RightParen", "se esperaba ')' para cerrar la expresión");
         return inner;
       }
+      case "Para":
+      case "Recibe":
+        return this.fail(token, reservedWordMessage(token));
       default:
         return this.fail(token, `expresión inesperada: ${describe(token)}`);
     }
@@ -279,6 +300,18 @@ export class Parser {
   private consume(type: TokenType, message: string): Token {
     if (this.check(type)) return this.advance();
     return this.fail(this.peek(), `${message} (se encontró ${describe(this.peek())})`);
+  }
+
+  /** Consumes an optional filler keyword, returning it when present. */
+  private matchFiller(type: "Para" | "Recibe"): Token | undefined {
+    return this.check(type) ? this.advance() : undefined;
+  }
+
+  /** Consumes an identifier used as a name, explaining when a filler word was used instead. */
+  private consumeName(message: string): string {
+    const token = this.peek();
+    if (token.type === "Para" || token.type === "Recibe") this.fail(token, reservedWordMessage(token));
+    return this.consume("Identifier", message).lexeme;
   }
 
   private skipNewlines(): void {

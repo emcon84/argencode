@@ -161,3 +161,61 @@ describe("runtime errors", () => {
     expect(errorOf("funcion f() { devolver f() }\nf()")).toThrow("demasiadas llamadas anidadas");
   });
 });
+
+describe("readable syntax", () => {
+  const counterProgram = `
+funcion para crearContador(recibe inicio) {
+  variable para contar = inicio
+  devuelve funcion() {
+    devuelve contar = contar + 1
+  }
+}
+variable para a = crearContador(0)
+mostrar(a())
+mostrar(a())
+var b = crearContador(0)
+mostrar(b())
+`;
+
+  test("runs the readable counter with independent counters", () => {
+    expect(outputOf(counterProgram)).toEqual(["1", "2", "1"]);
+  });
+
+  test("treats synonyms exactly like their base keywords", () => {
+    const readable = 'variable x = 2\nfunción doble(n) { devuelve n * 2 }\nmostrar(doble(x))';
+    const classic = "var x = 2\nfuncion doble(n) { devolver n * 2 }\nmostrar(doble(x))";
+    expect(outputOf(readable)).toEqual(["4"]);
+    expect(outputOf(readable)).toEqual(outputOf(classic));
+  });
+
+  test("runs the same with and without filler words", () => {
+    const withFillers = "funcion para sumar(recibe a, recibe b) { devuelve a + b }\nvar para r = sumar(1, 2)\nmostrar(r)";
+    const without = "funcion sumar(a, b) { devolver a + b }\nvar r = sumar(1, 2)\nmostrar(r)";
+    expect(outputOf(withFillers)).toEqual(["3"]);
+    expect(outputOf(without)).toEqual(["3"]);
+  });
+
+  test("accepts 'recibe' in anonymous functions", () => {
+    expect(outputOf("var cuadrado = funcion(recibe n) { devuelve n * n }\nmostrar(cuadrado(5))")).toEqual(["25"]);
+  });
+});
+
+describe("assignment expressions", () => {
+  test("evaluates to the assigned value", () => {
+    expect(outputOf("var x = 1\nmostrar(x = 5)\nmostrar(x)")).toEqual(["5", "5"]);
+  });
+
+  test("chains right-associatively", () => {
+    expect(outputOf("var a\nvar b\na = b = 3\nmostrar(a, b)")).toEqual(["3 3"]);
+  });
+
+  test("can be returned directly", () => {
+    expect(outputOf("var n = 0\nfuncion subir() { devuelve n = n + 1 }\nsubir()\nmostrar(subir(), n)")).toEqual([
+      "2 2",
+    ]);
+  });
+
+  test("does not change equality comparisons", () => {
+    expect(outputOf("var x = 1\nvar igual = x == 1\nmostrar(igual, x)")).toEqual(["verdadero 1"]);
+  });
+});

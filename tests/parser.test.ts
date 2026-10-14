@@ -90,3 +90,93 @@ describe("parser", () => {
     expect(() => program("1 = 2")).toThrow("Error en la línea 1: solo se puede asignar a una variable");
   });
 });
+
+describe("readable syntax", () => {
+  const declaration = <K extends Stmt["kind"]>(src: string, kind: K): Extract<Stmt, { kind: K }> => {
+    const [stmt] = program(src);
+    if (stmt?.kind !== kind) throw new Error(`expected ${kind}, got ${stmt?.kind}`);
+    return stmt as Extract<Stmt, { kind: K }>;
+  };
+
+  test("accepts 'para' before the name of a variable, with either keyword", () => {
+    expect(declaration("var para x = 1", "VarDecl").name).toBe("x");
+    expect(declaration("variable para x = 1", "VarDecl").name).toBe("x");
+    expect(declaration("variable x = 1", "VarDecl").name).toBe("x");
+  });
+
+  test("accepts 'para' before the name of a declared function, with either keyword", () => {
+    expect(declaration("funcion para f() {}", "FunctionDecl").name).toBe("f");
+    expect(declaration("función para f() {}", "FunctionDecl").name).toBe("f");
+    expect(declaration("función f() {}", "FunctionDecl").name).toBe("f");
+  });
+
+  test("accepts 'recibe' before the first parameter or before each one", () => {
+    expect(declaration("funcion f(recibe a, b) {}", "FunctionDecl").params).toEqual(["a", "b"]);
+    expect(declaration("funcion f(recibe a, recibe b) {}", "FunctionDecl").params).toEqual(["a", "b"]);
+    expect(declaration("funcion f(a, b) {}", "FunctionDecl").params).toEqual(["a", "b"]);
+    expect(show(firstExpr("funcion(recibe n) { devuelve n }"))).toBe("funcion(n)");
+  });
+
+  test("parses 'devuelve' as a return statement", () => {
+    const fn = declaration("funcion f() { devuelve 1 }", "FunctionDecl");
+    expect(fn.body[0]?.kind).toBe("Return");
+  });
+
+  test("still parses anonymous functions", () => {
+    expect(show(firstExpr("funcion() {}"))).toBe("funcion()");
+    expect(show(firstExpr("función(x) {}"))).toBe("funcion(x)");
+  });
+
+  test("reports 'para' without a function name", () => {
+    expect(() => program("funcion para (x) {}")).toThrow(
+      "Error en la línea 1: se esperaba el nombre de la función después de 'para' (se encontró '(')",
+    );
+  });
+
+  test("reports 'para' without a variable name", () => {
+    expect(() => program("variable para = 1")).toThrow(
+      "Error en la línea 1: se esperaba un nombre de variable después de 'para' (se encontró '=')",
+    );
+  });
+
+  test("reports 'recibe' without a parameter", () => {
+    expect(() => program("funcion f(recibe) {}")).toThrow(
+      "Error en la línea 1: se esperaba el nombre de un parámetro después de 'recibe' (se encontró ')')",
+    );
+  });
+
+  test("reports 'para' in an anonymous function", () => {
+    expect(() => program("var f = funcion para g() {}")).toThrow(
+      "Error en la línea 1: 'para' solo puede usarse antes del nombre de una función declarada",
+    );
+  });
+
+  test("rejects filler words used as names", () => {
+    expect(() => program("var recibe = 1")).toThrow(
+      "Error en la línea 1: 'recibe' es una palabra reservada y no puede usarse como nombre",
+    );
+    expect(() => program("funcion f(recibe recibe) {}")).toThrow("'recibe' es una palabra reservada");
+    expect(() => program("mostrar(para)")).toThrow("'para' es una palabra reservada");
+  });
+});
+
+describe("assignment expressions", () => {
+  test("parses assignment as the lowest-precedence operator", () => {
+    expect(show(firstExpr("a = b o c"))).toBe("(a = (b o c))");
+    expect(show(firstExpr("a = b + 1"))).toBe("(a = (b + 1))");
+  });
+
+  test("allows assignment inside other expressions", () => {
+    expect(show(firstExpr("f(a = 1)"))).toBe("f((a = 1))");
+    expect(show(firstExpr("(a = 1) + 2"))).toBe("((a = 1) + 2)");
+  });
+
+  test("keeps '==' as a comparison", () => {
+    expect(show(firstExpr("a = b == c"))).toBe("(a = (b == c))");
+  });
+
+  test("reports a non-variable assignment target on its line", () => {
+    expect(() => program("\na + b = 3")).toThrow("Error en la línea 2: solo se puede asignar a una variable");
+    expect(() => program("f() = 3")).toThrow("Error en la línea 1: solo se puede asignar a una variable");
+  });
+});
