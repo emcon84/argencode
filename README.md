@@ -45,7 +45,14 @@ Iniciar el intérprete interactivo (REPL):
 bun run src/cli.ts
 ```
 
-En el REPL, las variables se conservan entre entradas, los bloques abiertos con `{` continúan en la línea siguiente y el valor de la última expresión se muestra automáticamente. Para salir, escriba `.salir` o presione `Ctrl+D`.
+En el REPL, las variables se conservan entre entradas, los bloques abiertos con `{` continúan en la línea siguiente y el valor de la última expresión se muestra automáticamente.
+
+| Comando de la consola | Descripción                                          |
+| --------------------- | ---------------------------------------------------- |
+| `.ayuda`              | Muestra cómo ejecutar archivos, los comandos y ejemplos de sintaxis |
+| `.salir`              | Sale de la consola (también `Ctrl+D`)                |
+
+Si escribe la ruta de un archivo (por ejemplo `ejemplos/hola.arg`), la consola no la evalúa: le recuerda que debe salir y usar `bun run src/cli.ts <archivo>`. Si escribe `ayuda`, `help`, `salir` o `exit` sin el punto, y no existe una variable con ese nombre, muestra una pista hacia `.ayuda` o `.salir`.
 
 Otros comandos útiles:
 
@@ -95,6 +102,8 @@ De menor a mayor precedencia:
 | `*` `/` `%`           | multiplicación, división, resto |
 | `-` `no`              | negativo y negación (unarios)  |
 
+Las comparaciones también pueden escribirse en palabras; ver [Comparaciones en palabras](#comparaciones-en-palabras).
+
 `+` concatena cuando alguno de los operandos es texto: `"total: " + 5` produce `"total: 5"`.
 
 `y` y `o` devuelven uno de sus operandos, de modo que `nombre o "anónimo"` sirve como valor por defecto.
@@ -118,6 +127,61 @@ mientras i < 3 {
   i = i + 1
 }
 ```
+
+### Comparaciones en palabras
+
+Cada operador de comparación tiene una forma en palabras que produce exactamente el mismo resultado y tiene la misma precedencia que su símbolo:
+
+| En palabras                                          | Símbolo |
+| ---------------------------------------------------- | ------- |
+| `x es igual a y`                                     | `==`    |
+| `x no es igual a y`, `x es distinto de y`            | `!=`    |
+| `x es mayor que y`                                   | `>`     |
+| `x es menor que y`                                   | `<`     |
+| `x es mayor o igual a y`, `x es mayor o igual que y` | `>=`    |
+| `x es menor o igual a y`, `x es menor o igual que y` | `<=`    |
+
+La palabra final (`a`, `que` o `de`) es opcional: `n es menor o igual 15` equivale a `n <= 15`. Dentro de `mayor o igual` y `menor o igual`, la `o` forma parte del operador y no es el o lógico. Como tienen la misma precedencia que los símbolos, se combinan con el resto de los operadores:
+
+```
+si n % 3 es igual a 0 y n es mayor que 10 {
+  mostrar("múltiplo de 3 mayor que 10")
+}
+```
+
+Solo `es` es una palabra reservada. `igual`, `mayor`, `menor`, `distinto`, `a`, `que` y `de` solo se interpretan así inmediatamente después de `es`, por lo que siguen sirviendo como nombres: `a es igual a b` compara las variables `a` y `b`. Una frase incompleta produce un error claro:
+
+```
+Error en la línea 1: se esperaba 'igual', 'mayor', 'menor' o 'distinto' después de 'es' (se encontró '3')
+Error en la línea 1: se esperaba un valor después de 'es igual a'
+```
+
+### `ejecutar` y `si` de una sola línea
+
+La palabra `ejecutar` puede ir, opcionalmente, antes del bloque de `mientras`, `si` o `sino`:
+
+```
+mientras n es menor que 10 ejecutar {
+  n = n + 1
+}
+```
+
+`ejecutar` no es una palabra reservada: solo se omite cuando aparece justo antes de `{`, así que puede usarse como nombre de variable o de función.
+
+`si` y `sino` también aceptan una sola sentencia sin llaves, que termina con el fin de línea o con `;`. Las ramas `sino si` y `sino` pueden empezar en la línea siguiente, y las formas con y sin llaves pueden mezclarse:
+
+```
+var n = 1
+mientras n es menor o igual a 15 ejecutar {
+  si n % 15 es igual a 0 mostrar("FizzBuzz")
+  sino si n % 3 es igual a 0 mostrar("Fizz");
+  sino si n % 5 es igual a 0 mostrar("Buzz")
+  sino mostrar(n)
+  n = n + 1
+}
+```
+
+Si después de un `si` no viene un `sino`, la línea siguiente es una sentencia independiente. `mientras` siempre requiere un bloque entre llaves.
 
 ### Funciones
 
@@ -197,9 +261,11 @@ Error en la línea 2: la función 'sumar' espera 2 argumentos pero recibió 1
 
 ### Palabras clave
 
-`var`, `si`, `sino`, `mientras`, `funcion`, `devolver`, `verdadero`, `falso`, `nulo`, `y`, `o`, `no`.
+`var`, `si`, `sino`, `mientras`, `funcion`, `devolver`, `verdadero`, `falso`, `nulo`, `y`, `o`, `no`, `es`.
 
 Sinónimos: `variable`, `devuelve`, `función`. Palabras de relleno: `para`, `recibe`.
+
+Palabras contextuales (no reservadas): `igual`, `mayor`, `menor`, `distinto`, `a`, `que` y `de` después de `es`, y `ejecutar` antes de un bloque.
 
 ## Ejemplos
 
@@ -210,6 +276,7 @@ La carpeta [`ejemplos/`](ejemplos) contiene programas listos para ejecutar:
 - `contador.arg`: clausuras y funciones de primera clase.
 - `fizzbuzz.arg`: cadenas `sino si` y el operador `%`.
 - `legible.arg`: sintaxis legible con sinónimos y palabras de relleno.
+- `fizzbuzz-legible.arg`: comparaciones en palabras, `ejecutar` y `si` de una sola línea.
 
 ## Arquitectura
 
