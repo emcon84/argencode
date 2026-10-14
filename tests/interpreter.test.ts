@@ -219,3 +219,63 @@ describe("assignment expressions", () => {
     expect(outputOf("var x = 1\nvar igual = x == 1\nmostrar(igual, x)")).toEqual(["verdadero 1"]);
   });
 });
+
+describe("comparisons in words", () => {
+  test("behave exactly like the symbol operators", () => {
+    const pairs: Array<[string, string]> = [
+      ["es igual a", "=="],
+      ["no es igual a", "!="],
+      ["es distinto de", "!="],
+      ["es mayor que", ">"],
+      ["es menor que", "<"],
+      ["es mayor o igual a", ">="],
+      ["es mayor o igual que", ">="],
+      ["es menor o igual a", "<="],
+      ["es menor o igual que", "<="],
+    ];
+    const operands = ["1, 2", "2, 2", "3, 2", '"a", "b"', '"b", "b"', '1, "1"', "nulo, nulo"];
+    for (const [words, symbol] of pairs) {
+      for (const args of operands) {
+        const [left, right] = args.split(", ");
+        const isOrdering = symbol !== "==" && symbol !== "!=";
+        if (isOrdering && (args.includes("nulo") || args.includes('"1"'))) continue;
+        const program = `mostrar(${left} ${words} ${right})\nmostrar(${left} ${symbol} ${right})`;
+        const [fromWords, fromSymbol] = outputOf(program);
+        expect(`${left} ${words} ${right} -> ${fromWords}`).toBe(`${left} ${words} ${right} -> ${fromSymbol}`);
+      }
+    }
+  });
+
+  test("work with variables named 'a', 'igual' and 'mayor'", () => {
+    const source = `
+var a = 3
+var igual = 3
+var mayor = 10
+mostrar(a es igual a igual, mayor es mayor que a, a es menor o igual a igual)
+`;
+    expect(outputOf(source)).toEqual(["verdadero verdadero verdadero"]);
+  });
+
+  test("distinguish 'mayor o igual' from the logical 'o'", () => {
+    expect(outputOf("mostrar(5 es mayor o igual a 5, 1 es mayor que 5 o verdadero)")).toEqual(["verdadero verdadero"]);
+  });
+
+  test("combine with arithmetic and logical operators", () => {
+    expect(outputOf("var n = 9\nmostrar(n % 3 es igual a 0 y verdadero, n % 3 es igual a 0 y falso)")).toEqual([
+      "verdadero falso",
+    ]);
+  });
+
+  test("report runtime errors like their symbol equivalents", () => {
+    const errorOf = (source: string): string => {
+      try {
+        outputOf(source);
+        return "";
+      } catch (error) {
+        return (error as Error).message;
+      }
+    };
+    expect(errorOf('mostrar(1 es mayor que "a")')).not.toBe("");
+    expect(errorOf('mostrar(1 es mayor que "a")')).toBe(errorOf('mostrar(1 > "a")'));
+  });
+});

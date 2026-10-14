@@ -19,6 +19,8 @@ export const KEYWORDS = {
   y: "Y",
   o: "O",
   no: "No",
+  // Starts a comparison in words: `x es igual a y`, `x es mayor que y`.
+  es: "Es",
   // Optional filler words that make declarations read like natural language.
   para: "Para",
   recibe: "Recibe",

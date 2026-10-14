@@ -5,7 +5,7 @@ export type InfixOperator =
   | { kind: "Logical"; operator: LogicalOperator }
   | { kind: "Binary"; operator: BinaryOperator };
 
-interface InfixRule {
+export interface InfixRule {
   readonly precedence: number;
   readonly op: InfixOperator;
 }

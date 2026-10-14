@@ -1,7 +1,7 @@
 import { ArgencodeError } from "../errors.ts";
 import type { Token, TokenType } from "../lexer/index.ts";
 import type { Expr, Program, Stmt } from "./ast.ts";
-import { INFIX_RULES } from "./precedence.ts";
+import { INFIX_RULES, type InfixRule } from "./precedence.ts";
 
 const TOKEN_NAMES: Partial<Record<TokenType, string>> = {
   LeftParen: "'('",
@@ -14,6 +14,21 @@ const TOKEN_NAMES: Partial<Record<TokenType, string>> = {
   Newline: "fin de línea",
   EOF: "fin del archivo",
 };
+
+type ComparisonToken = "EqualEqual" | "BangEqual" | "Less" | "LessEqual" | "Greater" | "GreaterEqual";
+
+/** `mayor`/`menor` with the strict operator and the `o igual` variant they produce. */
+const ORDER_WORDS: ReadonlyArray<readonly [string, ComparisonToken, ComparisonToken]> = [
+  ["mayor", "Greater", "GreaterEqual"],
+  ["menor", "Less", "LessEqual"],
+];
+
+/** Word comparisons reuse the symbol rule so both spellings share precedence and AST. */
+function comparisonRule(type: ComparisonToken): InfixRule {
+  const rule = INFIX_RULES[type];
+  if (rule === undefined) throw new Error(`missing infix rule for ${type}`);
+  return rule;
+}
 
 function reservedWordMessage(token: Token): string {
   return `'${token.lexeme}' es una palabra reservada y no puede usarse como nombre`;
@@ -180,9 +195,18 @@ export class Parser {
   private binary(minPrecedence: number): Expr {
     let left = this.unary();
     for (;;) {
-      const rule = INFIX_RULES[this.peek().type];
-      if (rule === undefined || rule.precedence < minPrecedence) return left;
-      const operatorToken = this.advance();
+      const start = this.pos;
+      const operatorToken = this.peek();
+      const rule = this.infixOperator();
+      if (rule === undefined || rule.precedence < minPrecedence) {
+        this.pos = start;
+        return left;
+      }
+      const inWords = operatorToken.type === "Es" || operatorToken.type === "No";
+      if (inWords && this.atStatementEnd()) {
+        const phrase = this.tokens.slice(start, this.pos).map((t) => t.lexeme).join(" ");
+        this.fail(this.peek(), `se esperaba un valor después de '${phrase}'`);
+      }
       this.skipNewlines();
       const right = this.binary(rule.precedence + 1);
       const line = operatorToken.line;
@@ -191,6 +215,56 @@ export class Parser {
           ? { kind: "Logical", operator: rule.op.operator, left, right, line }
           : { kind: "Binary", operator: rule.op.operator, left, right, line };
     }
+  }
+
+  /** Consumes the next infix operator, written as a symbol or in words, and returns its rule. */
+  private infixOperator(): InfixRule | undefined {
+    const token = this.peek();
+    if (token.type === "Es") return this.wordComparison(false);
+    if (token.type === "No" && this.peekAt(1).type === "Es") return this.wordComparison(true);
+    const rule = INFIX_RULES[token.type];
+    if (rule !== undefined) this.advance();
+    return rule;
+  }
+
+  /**
+   * Reads a comparison written in words and returns the rule of its symbol equivalent:
+   * `es igual a` (==), `no es igual a` / `es distinto de` (!=), `es mayor que` (>),
+   * `es menor que` (<), `es mayor o igual a|que` (>=), `es menor o igual a|que` (<=).
+   * Only `es` is reserved; the other words are recognized here and stay valid names elsewhere.
+   */
+  private wordComparison(negated: boolean): InfixRule {
+    if (negated) this.advance();
+    const es = this.advance();
+    const phrase = negated ? "no es" : "es";
+
+    if (negated) {
+      this.expectWord("igual", `se esperaba 'igual' después de '${phrase}'`);
+      this.matchWord("a");
+      return comparisonRule("BangEqual");
+    }
+    if (this.matchWord("igual")) {
+      this.matchWord("a");
+      return comparisonRule("EqualEqual");
+    }
+    if (this.matchWord("distinto")) {
+      this.matchWord("de");
+      return comparisonRule("BangEqual");
+    }
+    for (const [word, strict, orEqual] of ORDER_WORDS) {
+      if (!this.matchWord(word)) continue;
+      if (this.match("O")) {
+        this.expectWord("igual", `se esperaba 'igual' después de '${word} o'`);
+        if (!this.matchWord("a")) this.matchWord("que");
+        return comparisonRule(orEqual);
+      }
+      this.matchWord("que");
+      return comparisonRule(strict);
+    }
+    return this.fail(
+      this.peek(),
+      `se esperaba 'igual', 'mayor', 'menor' o 'distinto' después de '${es.lexeme}' (se encontró ${describe(this.peek())})`,
+    );
   }
 
   /** Unary operators bind tighter than every infix operator. */
@@ -250,6 +324,8 @@ export class Parser {
       case "Para":
       case "Recibe":
         return this.fail(token, reservedWordMessage(token));
+      case "Es":
+        return this.fail(token, "'es' debe ir entre dos valores, por ejemplo: x es igual a 1");
       default:
         return this.fail(token, `expresión inesperada: ${describe(token)}`);
     }
@@ -302,6 +378,22 @@ export class Parser {
     return this.fail(this.peek(), `${message} (se encontró ${describe(this.peek())})`);
   }
 
+  /** True when the current token is the identifier `word`, used as a contextual keyword. */
+  private checkWord(word: string, offset = 0): boolean {
+    const token = this.peekAt(offset);
+    return token.type === "Identifier" && token.lexeme.normalize("NFC") === word;
+  }
+
+  private matchWord(word: string): boolean {
+    if (!this.checkWord(word)) return false;
+    this.advance();
+    return true;
+  }
+
+  private expectWord(word: string, message: string): void {
+    if (!this.matchWord(word)) this.fail(this.peek(), `${message} (se encontró ${describe(this.peek())})`);
+  }
+
   /** Consumes an optional filler keyword, returning it when present. */
   private matchFiller(type: "Para" | "Recibe"): Token | undefined {
     return this.check(type) ? this.advance() : undefined;
@@ -310,7 +402,9 @@ export class Parser {
   /** Consumes an identifier used as a name, explaining when a filler word was used instead. */
   private consumeName(message: string): string {
     const token = this.peek();
-    if (token.type === "Para" || token.type === "Recibe") this.fail(token, reservedWordMessage(token));
+    if (token.type === "Para" || token.type === "Recibe" || token.type === "Es") {
+      this.fail(token, reservedWordMessage(token));
+    }
     return this.consume("Identifier", message).lexeme;
   }
 

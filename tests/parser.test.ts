@@ -180,3 +180,66 @@ describe("assignment expressions", () => {
     expect(() => program("f() = 3")).toThrow("Error en la línea 1: solo se puede asignar a una variable");
   });
 });
+
+describe("comparisons in words", () => {
+  const sameAs = (words: string, symbols: string) => expect(firstExpr(words)).toEqual(firstExpr(symbols));
+
+  test("parse to the same AST as their symbol operators", () => {
+    sameAs("x es igual a z", "x == z");
+    sameAs("x no es igual a z", "x != z");
+    sameAs("x es distinto de z", "x != z");
+    sameAs("x es mayor que z", "x > z");
+    sameAs("x es menor que z", "x < z");
+    sameAs("x es mayor o igual a z", "x >= z");
+    sameAs("x es mayor o igual que z", "x >= z");
+    sameAs("x es menor o igual a z", "x <= z");
+    sameAs("x es menor o igual que z", "x <= z");
+  });
+
+  test("make the trailing 'a', 'que' and 'de' optional", () => {
+    sameAs("x es igual z", "x == z");
+    sameAs("x no es igual z", "x != z");
+    sameAs("x es distinto z", "x != z");
+    sameAs("x es mayor z", "x > z");
+    sameAs("x es menor z", "x < z");
+    sameAs("n es menor o igual 15", "n <= 15");
+    sameAs("n es mayor o igual 15", "n >= 15");
+  });
+
+  test("share the precedence of their symbol equivalents", () => {
+    expect(show(firstExpr("n % 3 es igual a 0 y verdadero"))).toBe("(((n % 3) == 0) y true)");
+    expect(show(firstExpr("a es menor que b es igual a c"))).toBe("((a < b) == c)");
+    expect(show(firstExpr("a es igual a b es menor que c"))).toBe("(a == (b < c))");
+    expect(show(firstExpr("x = a es mayor que b"))).toBe("(x = (a > b))");
+  });
+
+  test("read the 'o' inside 'mayor o igual' as part of the operator, not logical or", () => {
+    expect(show(firstExpr("a es mayor o igual a b o c"))).toBe("((a >= b) o c)");
+    expect(show(firstExpr("a es mayor que b o c es menor o igual que d"))).toBe("((a > b) o (c <= d))");
+  });
+
+  test("keep 'a', 'que', 'de', 'igual', 'mayor', 'menor' and 'distinto' usable as names", () => {
+    expect(show(firstExpr("a es igual a a"))).toBe("(a == a)");
+    expect(show(firstExpr("igual es igual a igual"))).toBe("(igual == igual)");
+    expect(show(firstExpr("mayor es mayor que menor"))).toBe("(mayor > menor)");
+    expect(show(firstExpr("que es distinto de de"))).toBe("(que != de)");
+    expect(show(firstExpr("distinto(a, b)"))).toBe("distinto(a, b)");
+    expect(program("var a = 1\nvar igual = 2\nvar mayor = 3\nvar b = a + igual + mayor").length).toBe(4);
+  });
+
+  test("reserve 'es' as a keyword", () => {
+    expect(() => program("var es = 1")).toThrow("'es' es una palabra reservada y no puede usarse como nombre");
+    expect(() => program("es igual a 1")).toThrow("'es' debe ir entre dos valores");
+  });
+
+  test("report incomplete phrases in Spanish", () => {
+    expect(() => program("x es 3")).toThrow(
+      "Error en la línea 1: se esperaba 'igual', 'mayor', 'menor' o 'distinto' después de 'es' (se encontró '3')",
+    );
+    expect(() => program("x es")).toThrow("se esperaba 'igual', 'mayor', 'menor' o 'distinto' después de 'es'");
+    expect(() => program("x no es mayor que y")).toThrow("se esperaba 'igual' después de 'no es' (se encontró 'mayor')");
+    expect(() => program("x es mayor o y")).toThrow("se esperaba 'igual' después de 'mayor o' (se encontró 'y')");
+    expect(() => program("x es igual a")).toThrow("se esperaba un valor después de 'es igual a'");
+    expect(() => program("x es menor o igual que\n")).toThrow("se esperaba un valor después de 'es menor o igual que'");
+  });
+});

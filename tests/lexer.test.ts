@@ -29,6 +29,13 @@ describe("lexer", () => {
     expect(types("para recibe")).toEqual(["Para", "Recibe", "EOF"]);
   });
 
+  test("reserves only 'es' from the comparisons in words", () => {
+    expect(types("es igual a mayor menor que distinto de ejecutar")).toEqual([
+      "Es", "Identifier", "Identifier", "Identifier", "Identifier",
+      "Identifier", "Identifier", "Identifier", "Identifier", "EOF",
+    ]);
+  });
+
   test("does not treat words that merely contain a keyword as keywords", () => {
     expect(types("variables parar recibido")).toEqual(["Identifier", "Identifier", "Identifier", "EOF"]);
   });
