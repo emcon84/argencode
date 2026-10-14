@@ -17,7 +17,7 @@ Comandos de la consola:
 Ejemplos:
   var nombre = "Che"
   mostrar("¡Hola, " + nombre + "!")
-  si 10 > 5 { mostrar("diez es más grande") }
+  si 10 es mayor que 5 mostrar("diez es más grande")
   funcion doble(n) { devolver n * 2 }
   doble(21)
 `;

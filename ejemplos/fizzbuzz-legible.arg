@@ -1,0 +1,9 @@
+// FizzBuzz legible: comparaciones en palabras, "ejecutar" y "si" de una sola línea
+var n = 1
+mientras n es menor o igual a 15 ejecutar {
+  si n % 15 es igual a 0 mostrar("FizzBuzz")
+  sino si n % 3 es igual a 0 mostrar("Fizz");
+  sino si n % 5 es igual a 0 mostrar("Buzz")
+  sino mostrar(n)
+  n = n + 1
+}

@@ -86,26 +86,41 @@ export class Parser {
   }
 
   private ifStatement(): Stmt {
-    const line = this.advance().line;
+    const keyword = this.advance();
     const condition = this.expression();
-    const then = this.block();
+    const then = this.branchBody(keyword);
     let otherwise: Stmt[] | null = null;
 
-    if (this.matchAfterNewlines("Sino")) {
-      if (this.check("Si")) {
-        otherwise = [this.ifStatement()];
-      } else {
-        otherwise = this.block();
-      }
+    // `sino` may start on a later line, or after the ';' that ends a single-statement body.
+    const sino = this.matchAfterSeparators("Sino");
+    if (sino !== undefined) {
+      otherwise = this.check("Si") ? [this.ifStatement()] : this.branchBody(sino);
     }
-    return { kind: "If", condition, then, otherwise, line };
+    return { kind: "If", condition, then, otherwise, line: keyword.line };
+  }
+
+  /** Body of `si` or `sino`: a block, or a single statement on the same line. */
+  private branchBody(keyword: Token): Stmt[] {
+    this.matchEjecutar();
+    if (this.check("LeftBrace")) return this.block();
+    if (this.atStatementEnd()) {
+      const found = describe(this.peek());
+      this.fail(this.peek(), `se esperaba '{' o una sentencia después de '${keyword.lexeme}' (se encontró ${found})`);
+    }
+    return [this.statement()];
   }
 
   private whileStatement(): Stmt {
     const line = this.advance().line;
     const condition = this.expression();
+    this.matchEjecutar();
     const body = this.block();
     return { kind: "While", condition, body, line };
+  }
+
+  /** Skips the optional word `ejecutar` before a block; elsewhere it is an ordinary name. */
+  private matchEjecutar(): void {
+    if (this.checkWord("ejecutar") && this.peekAt(1).type === "LeftBrace") this.advance();
   }
 
   private returnStatement(): Stmt {
@@ -364,13 +379,16 @@ export class Parser {
     return true;
   }
 
-  /** Matches `type` even if it appears after blank lines; otherwise leaves the position unchanged. */
-  private matchAfterNewlines(type: TokenType): boolean {
+  /**
+   * Matches `type` even if it appears after newlines or ';', returning the matched token.
+   * Otherwise leaves the position unchanged, so the following statement is not swallowed.
+   */
+  private matchAfterSeparators(type: TokenType): Token | undefined {
     let offset = 0;
-    while (this.peekAt(offset).type === "Newline") offset++;
-    if (this.peekAt(offset).type !== type) return false;
-    this.pos += offset + 1;
-    return true;
+    while (this.peekAt(offset).type === "Newline" || this.peekAt(offset).type === "Semicolon") offset++;
+    if (this.peekAt(offset).type !== type) return undefined;
+    this.pos += offset;
+    return this.advance();
   }
 
   private consume(type: TokenType, message: string): Token {

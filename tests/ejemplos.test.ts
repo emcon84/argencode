@@ -29,4 +29,10 @@ describe("ejemplos", () => {
     expect(lines.slice(0, 5)).toEqual(["1", "2", "Fizz", "4", "Buzz"]);
     expect(lines.at(-1)).toBe("FizzBuzz");
   });
+
+  test("fizzbuzz-legible.arg", async () => {
+    expect(outputOf(await read("fizzbuzz-legible.arg"))).toEqual(
+      "1 2 Fizz 4 Buzz Fizz 7 8 Fizz Buzz 11 Fizz 13 14 FizzBuzz".split(" "),
+    );
+  });
 });

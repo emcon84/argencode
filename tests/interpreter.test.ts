@@ -279,3 +279,37 @@ mostrar(a es igual a igual, mayor es mayor que a, a es menor o igual a igual)
     expect(errorOf('mostrar(1 es mayor que "a")')).toBe(errorOf('mostrar(1 > "a")'));
   });
 });
+
+describe("single-statement 'si'", () => {
+  test("runs the matching branch of an unbraced chain", () => {
+    const source = `
+funcion clasificar(n) {
+  si n es menor que 0 devolver "negativo"
+  sino si n es igual a 0 devolver "cero"
+  sino devolver "positivo"
+}
+mostrar(clasificar(-2), clasificar(0), clasificar(5))
+`;
+    expect(outputOf(source)).toEqual(["negativo cero positivo"]);
+  });
+
+  test("runs the statement after an 'si' without 'sino'", () => {
+    expect(outputOf("si falso mostrar(1)\nmostrar(2)\nsi verdadero mostrar(3)\nmostrar(4)")).toEqual(["2", "3", "4"]);
+  });
+
+  test("runs the readable FizzBuzz program", () => {
+    const source = `
+var n = 1
+mientras n es menor o igual a 15 ejecutar {
+  si n % 15 es igual a 0 mostrar("FizzBuzz")
+  sino si n % 3 es igual a 0 mostrar("Fizz");
+  sino si n % 5 es igual a 0 mostrar("Buzz")
+  sino mostrar(n)
+  n = n + 1
+}
+`;
+    expect(outputOf(source)).toEqual(
+      "1 2 Fizz 4 Buzz Fizz 7 8 Fizz Buzz 11 Fizz 13 14 FizzBuzz".split(" "),
+    );
+  });
+});

@@ -243,3 +243,67 @@ describe("comparisons in words", () => {
     expect(() => program("x es menor o igual que\n")).toThrow("se esperaba un valor después de 'es menor o igual que'");
   });
 });
+
+describe("optional 'ejecutar' and single-statement 'si'", () => {
+  /** Parses ignoring line numbers, to compare layouts that span different lines. */
+  const shape = (src: string) =>
+    JSON.parse(JSON.stringify(program(src), (key, value) => (key === "line" ? undefined : value)));
+  const ifStmt = (src: string) => {
+    const [stmt] = program(src);
+    if (stmt?.kind !== "If") throw new Error(`expected If, got ${stmt?.kind}`);
+    return stmt;
+  };
+
+  test("accepts 'ejecutar' before the block of 'mientras' and 'si'", () => {
+    expect(program("mientras x ejecutar { w }")).toEqual(program("mientras x { w }"));
+    expect(program("si x ejecutar { w } sino ejecutar { z }")).toEqual(program("si x { w } sino { z }"));
+  });
+
+  test("keeps 'ejecutar' usable as an ordinary name", () => {
+    expect(program("var ejecutar = 1\nejecutar = ejecutar + 1").length).toBe(2);
+    expect(show(firstExpr("ejecutar(1)"))).toBe("ejecutar(1)");
+    const stmt = ifStmt("si listo ejecutar()");
+    expect(stmt.then).toEqual(program("ejecutar()"));
+  });
+
+  test("takes a single statement as the body of 'si' and 'sino'", () => {
+    expect(program('si x mostrar("a") sino mostrar("b")')).toEqual(
+      program('si x { mostrar("a") } sino { mostrar("b") }'),
+    );
+  });
+
+  test("attaches 'sino si' and 'sino' on following lines, also after ';'", () => {
+    const unbraced = shape('si a mostrar(1)\nsino si b mostrar(2);\n\nsino mostrar(3)');
+    expect(unbraced).toEqual(shape("si a { mostrar(1) } sino si b { mostrar(2) } sino { mostrar(3) }"));
+  });
+
+  test("mixes braced and unbraced branches", () => {
+    const mixed = shape("si a {\n  mostrar(1)\n} sino si b mostrar(2)\nsino {\n  mostrar(3)\n}");
+    expect(mixed).toEqual(shape("si a { mostrar(1) } sino si b { mostrar(2) } sino { mostrar(3) }"));
+  });
+
+  test("does not swallow the next statement when no 'sino' follows", () => {
+    const body = program("si a mostrar(1)\nmostrar(2)\n\nmostrar(3); mostrar(4)");
+    expect(body.map((s) => s.kind)).toEqual(["If", "ExprStmt", "ExprStmt", "ExprStmt"]);
+    expect((body[0] as Extract<Stmt, { kind: "If" }>).otherwise).toBeNull();
+  });
+
+  test("ends a single-statement body at the end of the line", () => {
+    expect(() => program("si a mostrar(1) mostrar(2)")).toThrow(
+      "Error en la línea 1: se esperaba fin de línea pero se encontró 'mostrar'",
+    );
+  });
+
+  test("reports a missing body", () => {
+    expect(() => program("si a\nmostrar(1)")).toThrow(
+      "Error en la línea 1: se esperaba '{' o una sentencia después de 'si' (se encontró fin de línea)",
+    );
+    expect(() => program("si a mostrar(1)\nsino")).toThrow(
+      "se esperaba '{' o una sentencia después de 'sino' (se encontró fin del archivo)",
+    );
+  });
+
+  test("still requires a block for 'mientras'", () => {
+    expect(() => program("mientras x ejecutar y")).toThrow("se esperaba '{' para abrir el bloque");
+  });
+});
